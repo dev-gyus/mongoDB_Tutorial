@@ -3,6 +3,7 @@ const express = require('express');
 const { request } = require('http');
 const app = express();
 
+// express middleware 이용해서 json data parsing해서 req, res에 넣어줌
 app.use(express.json())
 
 const users = [];
