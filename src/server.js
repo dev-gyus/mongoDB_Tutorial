@@ -3,7 +3,9 @@ const express = require('express');
 const { request } = require('http');
 const app = express();
 const mongoose = require('mongoose');
-const {userRouter} = require('./routes/userRoute');
+const { userRouter } = require('./routes/userRoute');
+const { blogRouter } = require('./routes/blogRoute');
+const { commentRouter } = require('./routes/commentRoute');
 
 const MONGO_URI = 'mongodb+srv://admin:vmffkd495@mongodbtutorial.zvkjv.mongodb.net/BlogService?retryWrites=true&w=majority';
 
@@ -17,6 +19,8 @@ const server = async() => {
 
     // 라우터 설정
     app.use('/user', userRouter);
+    app.use('/blog', blogRouter);
+    app.use('/blog/:blogId/comment', blogRouter);
     
     // node server가 사용할 포트 설정
     app.listen(3000, function(){

@@ -1,7 +1,7 @@
 // router는 express가 제공해주는 라우터 사용함
 const { Router } = require('express');
 const userRouter = Router();
-const {User} = require('../models/User');
+const {User} = require('../models');
 const mongoose = require('mongoose');
 
 userRouter.get('/', async function(req, res) {
