@@ -1,8 +1,8 @@
 const { Router } = require('express');
 const commentRouter = Router({mergeParams: true}); // mergeParams = Server.js에서 라우터 mapping할때 선언한 경로변수 사용할 수 있도록 해줌
-const { Comment } = require('../models/Comment');
-const { Blog } = require('../models/Blog');
-const { User } = require('../models/User');
+const { Blog, User, Comment } = require('../models');
+// const { Blog } = require('../models/Blog');
+// const { User } = require('../models/User');
 const { isValidObjectId } = require('mongoose');
 
 commentRouter.post('/', async (req, res) => {

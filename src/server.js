@@ -3,8 +3,8 @@ const express = require('express');
 const { request } = require('http');
 const app = express();
 const mongoose = require('mongoose');
-const { userRouter } = require('./routes/userRoute');
-const { blogRouter } = require('./routes/blogRoute');
+const { userRouter, blogRouter } = require('./routes');
+// const { blogRouter } = require('./routes/blogRoute');
 const { commentRouter } = require('./routes/commentRoute');
 
 const MONGO_URI = 'mongodb+srv://admin:vmffkd495@mongodbtutorial.zvkjv.mongodb.net/BlogService?retryWrites=true&w=majority';

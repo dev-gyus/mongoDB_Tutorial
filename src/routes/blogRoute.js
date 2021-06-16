@@ -1,8 +1,8 @@
 const { Router } = require('express');
 const blogRouter = Router(); // 라우터 선언
-const { Blog } = require('../models/Blog'); // Model가져옴
-const { User } = require('../models/User'); 
-const { isValidObjectId } = require('mongoose');
+const { Blog, User } = require('../models'); // Model가져옴
+// const { User } = require('../models/User'); 
+const { isValidObjectId } = require('mongoose'); // Id값이 유효한지 검사하기 위해 mongoose내장 함수 사용
 const { commentRouter } = require('./commentRoute');
 blogRouter.use('/:blogId/comment', commentRouter);
 
