@@ -29,8 +29,12 @@ blogRouter.post('/', async (req, res) => {
 
 blogRouter.get('/', async (req, res) => {
     try{
-        const blogs = await Blog.find({});
-        return res.send(blogs);
+        // Model에 user의 id가 ref='user'로 user객체의 id인것을 선언했으므로 그걸 갖고 채우도록 선언하는 것
+        // n+1 문제 해결
+        // user의 경우 Blog Model에서 user에 대한 field가 있기 때문에 그냥 populate 선언하면 되지만
+        // comment는 Comment Model에 Blog에 대한 id값이 있기 때문에 virtual populate로 선언해야함
+        const blogs = await Blog.find({}).limit(20).populate([{ path: 'user' }, { path: 'comments', populate: { path : 'user' }}]);
+        return res.send({blogs});
     } catch(err){
         console.log(err);
         res.status(500).send({err: err.message});

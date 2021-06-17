@@ -7,6 +7,8 @@ const { userRouter, blogRouter } = require('./routes');
 // const { blogRouter } = require('./routes/blogRoute');
 const { commentRouter } = require('./routes/commentRoute');
 
+const { generateFakeData } = require('../faker');
+
 const MONGO_URI = 'mongodb+srv://admin:vmffkd495@mongodbtutorial.zvkjv.mongodb.net/BlogService?retryWrites=true&w=majority';
 
 const server = async() => {
@@ -14,6 +16,7 @@ const server = async() => {
         await mongoose.connect(MONGO_URI, {useNewUrlParser: true, useUnifiedTopology:true, useCreateIndex:true, useFindAndModify:false});
         mongoose.set('debug', true); // mongoose query debug모드
         console.log('MongoDB connected');
+        // await generateFakeData(100, 10, 300);
         // express middleware 이용해서 json data parsing해서 req, res에 넣어줌
     app.use(express.json());
 
