@@ -11,15 +11,15 @@ blogRouter.post('/', async (req, res) => {
         const {title, content, islive, userId} = req.body;
         if(typeof title !== 'string') return res.status(400).send({err: 'title is required'});
         if(typeof content !== 'string') return res.status(400).send({err: 'content is required'});
-        if(islive && islive !== 'string') return res.status(400).send({err: 'islive must is boolean'});
+        if(islive && typeof islive !== 'boolean') return res.status(400).send({err: 'islive must is boolean'});
         if(!isValidObjectId(userId)) return res.status(400).send({err: 'title is required'});
 
         let user = await User.findById(userId);
-        if(!user) res.status(400).send({err: 'user does not exist'});
+        if(!user) return res.status(400).send({err: 'user does not exist'});
 
         let blog = new Blog({...req.body, user });
         await blog.save();
-        return res.send(blog);
+        return res.send({blog});
 
     } catch(err){
         console.log(err);
@@ -33,7 +33,11 @@ blogRouter.get('/', async (req, res) => {
         // n+1 문제 해결
         // user의 경우 Blog Model에서 user에 대한 field가 있기 때문에 그냥 populate 선언하면 되지만
         // comment는 Comment Model에 Blog에 대한 id값이 있기 때문에 virtual populate로 선언해야함
-        const blogs = await Blog.find({}).limit(20).populate([{ path: 'user' }, { path: 'comments', populate: { path : 'user' }}]);
+        let { page } = req.query;
+        page = parseInt(page);
+        // pagenation + sorting 조건 추가
+        const blogs = await Blog.find({}).limit(3).skip(3 * page).sort({ updatedAt: -1, });
+        // .populate([{ path: 'user' }, { path: 'comments', populate: { path : 'user' }}]);
         return res.send({blogs});
     } catch(err){
         console.log(err);

@@ -4,12 +4,8 @@ const axios = require('axios');
 const URI = 'http://localhost:3000';
 
 const test = async () => {
-    console.time('time: ');
-    let {
-        data: { blogs },
-    } = await axios.get(`${URI}/blog`);
-
-    console.log(blogs);
+    console.time('loading time: ');
+    await axios.get(`${URI}/blog`);
 
     // Promise를 이용하여 async처리
 //     blogs = await Promise.all(blogs.map(async (blog) => {
@@ -22,8 +18,18 @@ const test = async () => {
 //     }))
 //     return blog;
 // }));
-console.dir(blogs[0], { depth: 10 });
-console.timeEnd('time: ');
+console.timeEnd('loading time: ');
 };
 
-test();
+// nesting을 사용하면 Read 성능이 아주빨라짐
+const testGroup = async () => {
+    await test();
+    await test();
+    await test();
+    await test();
+    await test();
+    await test();
+    await test();
+}
+
+testGroup();

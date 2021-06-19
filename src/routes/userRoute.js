@@ -1,7 +1,7 @@
 // router는 express가 제공해주는 라우터 사용함
 const { Router } = require('express');
 const userRouter = Router();
-const {User} = require('../models');
+const {User, Blog, Comment} = require('../models');
 const mongoose = require('mongoose');
 
 userRouter.get('/', async function(req, res) {
@@ -46,7 +46,15 @@ userRouter.delete('/:userId', async (req, res) => {
     const {userId} = req.params;
     try{
         if(!mongoose.isValidObjectId(userId)) return res.status(400).send({err : 'invalid userId'});
-        const user = await User.findOneAndDelete({_id : userId});
+        const [user] = await Promise.all([
+            User.findOneAndDelete({_id : userId}),
+            Blog.deleteMany({'user._id': userId}),
+            Blog.updateMany(
+                {'comments.user':userId}, 
+                {$pull: {comments: {user: userId}}}
+            ),
+            Comment.deleteMany({user: userId})
+        ]);
         return res.send({user});
     }catch(err){
         return res.send({err : err.message});
@@ -77,7 +85,21 @@ userRouter.put('/:userId', async (req, res) => {
         // {new: true}옵션 안해줘도 됨, 쿼리가 2번나간다는 단점이 있지만 2번정도는 눈감아줄만 하다.
         let user = await User.findById(userId);
         if(age) user.age = age;
-        if(name) user.name = name;
+
+        // User의 name정보를 바꿀때 연관된 Blog, Comment에도 변경된 User의 name을 저장해준다
+        if(name) {
+            user.name = name;
+            await Blog.updateMany({'user._id': userId}, {'user.name': name});
+            // Document내에 Array가 있는데 그 Array에 Filter에 해당하는 것만 선택해서 변경 할 경우의 문법
+            // 'comments.$[element].userFullName.$[user].name.first' 이런경우
+            // arrayFilters:[{'element.user._id': userId}, {'user~~':~~~}] 이런식으로 배열로 filter조건 주면 됨
+            await Blog.updateMany(
+                {}, 
+                { 'comments.$[comment].userFullName': `${name.first} ${name.last}`},
+                { arrayFilters:[{'comment.user': userId}]}
+        );
+    }
+
         await user.save();
         return res.send({user});
     } catch(err){
