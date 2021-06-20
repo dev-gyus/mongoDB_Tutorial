@@ -51,6 +51,10 @@ blogRouter.get('/:blogId', async (req, res) => {
         if (!isValidObjectId(blogId)) return res.status(400).send({err: 'blogId is invalid'});
 
         const blog = await Blog.findById({_id: blogId});
+
+        // MongoDB에서 사용가능한 Count Query <- Blog model에 nesting함
+        // const commentCount = await Comment.find({ blog: blogId }).countDocuments();
+
         return res.send(blog);
     } catch(err){
         console.log(err);

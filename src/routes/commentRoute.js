@@ -3,47 +3,109 @@ const commentRouter = Router({mergeParams: true}); // mergeParams = Server.js에
 const { Blog, User, Comment } = require('../models');
 // const { Blog } = require('../models/Blog');
 // const { User } = require('../models/User');
-const { isValidObjectId } = require('mongoose');
+
+// startSession = Transaction 사용하기위한 변수
+const { isValidObjectId, startSession } = require('mongoose');
 
 commentRouter.post('/', async (req, res) => {
+    // transaction 적용
+    const session = await startSession();
+    let comment;
+
     try{
-        const { blogId } = req.params;
-        const { content, userId } = req.body;
-        if(!isValidObjectId(blogId)) return res.status(400).send({err: 'blogId is invalid'});
-        if(!isValidObjectId(userId)) return res.status(400).send({err: 'userId is invalid'});
-        if(typeof content !== 'string') return res.status(400).send({err: 'content is reqired'});
+        // transaction 적용
+        // await session.withTransaction(async () => {
+            const { blogId } = req.params;
+            const { content, userId } = req.body;
+            if(!isValidObjectId(blogId)) return res.status(400).send({err: 'blogId is invalid'});
+            if(!isValidObjectId(userId)) return res.status(400).send({err: 'userId is invalid'});
+            if(typeof content !== 'string') return res.status(400).send({err: 'content is reqired'});
+    
+            // 비동기 방식 <- 성능 극대화
+            const [blog, user] = await Promise.all([
+                // Blog.findById(blogId, {}, { session }),
+                // Transaction 적용하는방법, findById()는 3번째 인자가 option이므로 3번째 인자에 session을 넣음
+                // find에도 transaction을 걸어야 동시성 문제 안생김
+                Blog.findById(blogId, {}, {}),
+                User.findById(userId, {}, {})
+            ]);
+            // 동기 방식
+            // const blog = await Blog.findById(blogId);
+            // const user = await User.findById(userId);
+            if(!blog || !user) return res.status(400).send({err: 'blog or user does not exist'});
+            if(!blog.islive) return res.status(400).send({err: 'blog is not available'});
+    
+            // blog에 그냥 blog를 넣어주면 comment<->blog 서로 같은걸 참조하기 때문에 무한루프 발생함 => blogId넣을것
+            comment = new Comment({ 
+                content, 
+                user, 
+                userFullName: `${user.name.first} ${user.name.last}`, 
+                blog: blogId 
+            });
 
-        // 비동기 방식 <- 성능 극대화
-        const [blog, user] = await Promise.all([
-            Blog.findById(blogId),
-            User.findById(userId)
-        ]);
-        // 동기 방식
-        // const blog = await Blog.findById(blogId);
-        // const user = await User.findById(userId);
-        if(!blog || !user) return res.status(400).send({err: 'blog or user does not exist'});
-        if(!blog.islive) return res.status(400).send({err: 'blog is not available'});
+            // Transaction Rollback하는 기능 -> Exception Check시 사용
+            // await session.abortTransaction();
 
-        const comment = new Comment({ content, user, userFullName: `${user.name.first} ${user.name.last}`, blog });
-        // comment와 blog업데이트는 동시에 발생해도 괜찮으므로 비동기 방식으로 처리해도 괜찮음
-        // 다만 이럴경우 DB 부하가 좀 늘어나긴 함
-        // MongoDB의 사용 주 원칙 = 쓸때 좀 부하를 받거나 작업이 많아져도 조회할때 성능을 빠르게하자
-        await Promise.all([
-            comment.save(), 
-            Blog.updateOne({ _id: blogId }, { $push:{ comments: comment }})
-        ]);
-        return res.send(comment);
+            // 위의 return status(400)은 db 반영 자체는 됨. 다만 find기도하고 critical한 로직이 아니라 rollback안함
+            // transaction을 너무 많은곳에서 사용하면 api자체의 성능이 떨어지기때문에 꼭 필요한 부분에서만 transaction사용할것
+
+            // comment와 blog업데이트는 동시에 발생해도 괜찮으므로 비동기 방식으로 처리해도 괜찮음
+            // 다만 이럴경우 DB 부하가 좀 늘어나긴 함
+            // MongoDB의 사용 주 원칙 = 쓸때 좀 부하를 받거나 작업이 많아져도 조회할때 성능을 빠르게하자
+            // await Promise.all([
+            //     comment.save(), 
+            //     Blog.updateOne({ _id: blogId }, { $push:{ comments: comment }})
+            // ]);
+            
+
+            // blog.commentCount++;
+            // blog.comments.push(comment);
+    
+            // // shift() 배열에서 가장 오래된 항목 Pop하는 기능 (해당 값 리턴 && 배열에서 제거)
+            // if (blog.commentCount > 3) blog.comments.shift();
+    
+            // await Promise.all( 
+            // [   
+            //     comment.save({session}), 
+            //     blog.save()
+            // ]);
+
+            // blog를 업데이트 할때 blog에 내장된 Collection 내 문서의 가장 최신의 push data 3개를 제외한 나머지를 지워서 업데이트 할 것 ($slice: 3 으로 하면 오래된거 3개로 바뀜)
+            // $push:{comments: {$each: [comment]}} = $push:{comments: comment} 랑 똑같은 개념. 내장 Collection에 Document push해주는 기능
+            await Promise.all([ 
+                comment.save(), 
+                // 하나의 document내의 모든 기능은 atomicity함. 즉, 하나의 Document안에서는 내장된 collection까지 atomicity를 보장함
+                // 즉, Transaction을 남발하기보단, 하나의 document내에 nesting을 하는 방법으로 구현하는것이 필요하다
+                Blog.updateOne(
+                {_id: blogId}, 
+                { $inc: {commentCount: 1},
+                $push:{ comments: {$each: [comment], $slice: -3}}
+            })]);
+    
+            return res.send(comment);
+        // });
 
     } catch(err){
         console.log(err);
         return res.send(400).send({err: err.message});
+    } finally {
+        // transaction 성공했든 실패했든 session은 종료해야함
+        await session.endSession();
     }
 });
 commentRouter.get('/', async (req, res) => {
     try{
+        // 만약에 queryString에 page 파라미터가 없는경우 0을 디폴트값으로 설정해줌
+        let { page = 0 } = req.query;
+        page = parseInt(page);
         const { blogId } = req.params;
         if(!isValidObjectId(blogId)) return res.status(400).send({err: 'blogId is invalid'});
-        const comments = await Comment.find({ blog: blogId });
+
+        // comment 조회시 paging
+        const comments = await Comment.find({ blog: blogId })
+        .skip(page * 3)
+        .limit(3)
+        .sort({ createdAt: -1 });
         return res.send({comments});
     } catch(err){
         console.log(err);

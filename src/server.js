@@ -28,7 +28,7 @@ const server = async() => {
     app.listen(3000, async () => {
         console.log('server listening on port 3000');
         // dummy data 생성
-        await generateFakeData(10, 10, 10);
+        // await generateFakeData(10, 2, 10);
 
     });
 
