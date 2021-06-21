@@ -75,7 +75,7 @@ commentRouter.post('/', async (req, res) => {
             await Promise.all([ 
                 comment.save(), 
                 // 하나의 document내의 모든 기능은 atomicity함. 즉, 하나의 Document안에서는 내장된 collection까지 atomicity를 보장함
-                // 즉, Transaction을 남발하기보단, 하나의 document내에 nesting을 하는 방법으로 구현하는것이 필요하다
+                // 즉, Transaction을 남발하기보단, 하나의 document내에 nesting을 하는 방법으로 구현하는것이 필요하다.
                 Blog.updateOne(
                 {_id: blogId}, 
                 { $inc: {commentCount: 1},
