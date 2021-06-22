@@ -89,7 +89,7 @@ commentRouter.post('/', async (req, res) => {
         console.log(err);
         return res.send(400).send({err: err.message});
     } finally {
-        // transaction 성공했든 실패했든 session은 종료해야함
+        // transaction 성공했든 실패했든 session은 종료해야함.ß
         await session.endSession();
     }
 });
