@@ -51,7 +51,7 @@ commentRouter.post('/', async (req, res) => {
 
             // comment와 blog업데이트는 동시에 발생해도 괜찮으므로 비동기 방식으로 처리해도 괜찮음
             // 다만 이럴경우 DB 부하가 좀 늘어나긴 함
-            // MongoDB의 사용 주 원칙 = 쓸때 좀 부하를 받거나 작업이 많아져도 조회할때 성능을 빠르게하자..
+            // MongoDB의 사용 주 원칙 = 쓸때 좀 부하를 받거나 작업이 많아져도 조회할때 성능을 빠르게하자.
             // await Promise.all([
             //     comment.save(), 
             //     Blog.updateOne({ _id: blogId }, { $push:{ comments: comment }})
